@@ -155,12 +155,21 @@ export function useUpdateLdWorkType() {
 // ─── Cases ───
 export function useLdCases() {
   return useAuthedLdQuery(["ld-cases"], async () => {
-      const { data, error } = await supabase
-        .from("ld_cases")
-        .select("*, client:ld_clients(clinic_name, doctor_name, clinic_code), technician:ld_staff!ld_cases_assigned_technician_id_fkey(full_name), work_type:ld_work_types(name)")
-        .order("case_number", { ascending: false });
-      if (error) throw error;
-      return data || [];
+      // Supabase caps a single query at 1000 rows; fetch in batches up to 10,000 cases
+      const PAGE_SIZE = 1000;
+      const MAX_ROWS = 10000;
+      const allRows: any[] = [];
+      for (let from = 0; from < MAX_ROWS; from += PAGE_SIZE) {
+        const { data, error } = await supabase
+          .from("ld_cases")
+          .select("*, client:ld_clients(clinic_name, doctor_name, clinic_code), technician:ld_staff!ld_cases_assigned_technician_id_fkey(full_name), work_type:ld_work_types(name)")
+          .order("case_number", { ascending: false })
+          .range(from, from + PAGE_SIZE - 1);
+        if (error) throw error;
+        allRows.push(...(data || []));
+        if (!data || data.length < PAGE_SIZE) break;
+      }
+      return allRows;
   });
 }
 

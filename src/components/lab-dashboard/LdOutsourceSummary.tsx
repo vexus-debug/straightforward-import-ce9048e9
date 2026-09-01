@@ -44,14 +44,21 @@ export function LdOutsourceSummary() {
   const { data: yearCases = [], isLoading: l1 } = useQuery({
     queryKey: ["ld_outsource_cases", yStart, yEnd],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ld_cases")
-        .select("id, case_number, patient_name, work_type_id, work_type_name, tooth_number, lab_fee, discount, client_id, external_lab_id, external_lab_unit_price, external_lab_express_charge, external_lab_discount, received_date, created_at, status, ld_external_labs:external_lab_id(name)")
-        .not("external_lab_id", "is", null)
-        .gte("received_date", yStart)
-        .lt("received_date", yEnd);
-      if (error) throw error;
-      return (data || []) as any[];
+      // Fetch in batches: Supabase caps a single query at 1000 rows
+      const allRows: any[] = [];
+      for (let from = 0; from < 10000; from += 1000) {
+        const { data, error } = await supabase
+          .from("ld_cases")
+          .select("id, case_number, patient_name, work_type_id, work_type_name, tooth_number, lab_fee, discount, client_id, external_lab_id, external_lab_unit_price, external_lab_express_charge, external_lab_discount, received_date, created_at, status, ld_external_labs:external_lab_id(name)")
+          .not("external_lab_id", "is", null)
+          .gte("received_date", yStart)
+          .lt("received_date", yEnd)
+          .range(from, from + 999);
+        if (error) throw error;
+        allRows.push(...(data || []));
+        if (!data || data.length < 1000) break;
+      }
+      return allRows;
     },
   });
 

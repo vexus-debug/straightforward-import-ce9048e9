@@ -47,9 +47,15 @@ export default function LdAnalyticsPage() {
   const { data: allCases = [] } = useQuery({
     queryKey: ["ld_cases_analytics"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("ld_cases").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
+      // Fetch in batches: Supabase caps a single query at 1000 rows
+      const allRows: any[] = [];
+      for (let from = 0; from < 10000; from += 1000) {
+        const { data, error } = await supabase.from("ld_cases").select("*").order("created_at", { ascending: false }).range(from, from + 999);
+        if (error) throw error;
+        allRows.push(...(data || []));
+        if (!data || data.length < 1000) break;
+      }
+      return allRows;
     },
   });
 
