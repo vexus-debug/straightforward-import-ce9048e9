@@ -1,0 +1,1 @@
+ALTER VIEW public.patients_central SET (security_invoker = on);
