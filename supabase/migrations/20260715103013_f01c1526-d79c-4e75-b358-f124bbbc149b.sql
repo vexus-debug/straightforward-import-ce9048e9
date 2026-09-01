@@ -1,0 +1,1 @@
+ALTER TABLE public.ld_work_types ADD COLUMN IF NOT EXISTS requires_external_lab boolean NOT NULL DEFAULT false;

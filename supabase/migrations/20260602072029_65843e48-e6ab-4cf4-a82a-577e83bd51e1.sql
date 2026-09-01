@@ -1,0 +1,1 @@
+ALTER TABLE public.invoice_breakdown_overrides ADD COLUMN IF NOT EXISTS associate_share NUMERIC;
